@@ -1,41 +1,215 @@
-name: Generate Contribution Train
+import json
+import os
+import urllib.request
+from pathlib import Path
 
-on:
-  workflow_dispatch:
+USERNAME = os.environ.get("GITHUB_USERNAME", "Kavithma17")
+TOKEN = os.environ["GITHUB_TOKEN"]
 
-  schedule:
-    - cron: "0 0 * * *"
+GRAPHQL_QUERY = """
+query($login: String!) {
+  user(login: $login) {
+    contributionsCollection {
+      contributionCalendar {
+        totalContributions
+        weeks {
+          contributionDays {
+            contributionCount
+            date
+            weekday
+          }
+        }
+      }
+    }
+  }
+}
+"""
 
-permissions:
-  contents: write
+payload = json.dumps({
+    "query": GRAPHQL_QUERY,
+    "variables": {"login": USERNAME}
+}).encode("utf-8")
 
-jobs:
-  generate:
-    runs-on: ubuntu-latest
+request = urllib.request.Request(
+    "https://api.github.com/graphql",
+    data=payload,
+    headers={
+        "Authorization": f"Bearer {TOKEN}",
+        "Content-Type": "application/json",
+        "User-Agent": "github-profile-train"
+    }
+)
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+with urllib.request.urlopen(request) as response:
+    result = json.loads(response.read().decode("utf-8"))
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+if "errors" in result:
+    raise RuntimeError(result["errors"])
 
-      - name: Generate train contribution graph
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_USERNAME: ${{ github.repository_owner }}
-        run: python scripts/generate_train.py
+calendar = result["data"]["user"]["contributionsCollection"]["contributionCalendar"]
+weeks = calendar["weeks"]
+total = calendar["totalContributions"]
 
-      - name: Commit generated SVG
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+# -----------------------------
+# Layout
+# -----------------------------
+CELL = 11
+GAP = 3
+STEP = CELL + GAP
 
-          git add assets/github-train.svg
+LEFT = 20
+TOP = 35
 
-          git diff --cached --quiet || \
-          git commit -m "chore: update contribution train"
+GRAPH_WIDTH = len(weeks) * STEP
+WIDTH = LEFT + GRAPH_WIDTH + 20
+HEIGHT = TOP + (7 * STEP) + 25
 
-          git push
+COLORS = [
+    "#161b22",  # 0
+    "#0e4429",  # low
+    "#006d32",
+    "#26a641",
+    "#39d353",  # high
+]
+
+def level(count):
+    if count == 0:
+        return 0
+    elif count <= 2:
+        return 1
+    elif count <= 5:
+        return 2
+    elif count <= 9:
+        return 3
+    return 4
+
+svg = []
+
+svg.append(f'''<svg width="{WIDTH}" height="{HEIGHT}" viewBox="0 0 {WIDTH} {HEIGHT}" xmlns="http://www.w3.org/2000/svg">''')
+
+svg.append("""
+<style>
+  text {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  .title {
+    fill: #8b949e;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .train-main { fill: #58a6ff; }
+  .train-dark { fill: #1f6feb; }
+  .train-window { fill: #dbeafe; }
+  .train-wheel { fill: #c9d1d9; }
+  .smoke { fill: #8b949e; opacity: 0; }
+
+  @media (prefers-color-scheme: light) {
+    .title { fill: #57606a; }
+    .train-window { fill: #ffffff; }
+  }
+</style>
+""")
+
+# -----------------------------
+# Title
+# -----------------------------
+svg.append(
+    f'<text x="{LEFT}" y="16" class="title">{USERNAME} — {total} contributions</text>'
+)
+
+# -----------------------------
+# Contribution graph
+# -----------------------------
+for week_index, week in enumerate(weeks):
+    x = LEFT + week_index * STEP
+
+    for day in week["contributionDays"]:
+        y = TOP + day["weekday"] * STEP
+        count = day["contributionCount"]
+        date = day["date"]
+        color = COLORS[level(count)]
+
+        svg.append(
+            f'''
+            <rect
+              x="{x}"
+              y="{y}"
+              width="{CELL}"
+              height="{CELL}"
+              rx="2"
+              fill="{color}">
+              <title>{date}: {count} contributions</title>
+            </rect>
+            '''
+        )
+
+# -----------------------------
+# Small train INSIDE the boxes
+# -----------------------------
+# Pick a row in the graph (0 to 6)
+TRAIN_ROW = 3
+
+train_y = TOP + TRAIN_ROW * STEP - 1
+start_x = LEFT - 55
+end_x = LEFT + GRAPH_WIDTH + 25
+
+svg.append(f'''
+<g>
+  <animateTransform
+    attributeName="transform"
+    type="translate"
+    from="{start_x} {train_y}"
+    to="{end_x} {train_y}"
+    dur="10s"
+    repeatCount="indefinite"
+  />
+
+  <!-- back carriage -->
+  <rect x="-34" y="4" width="18" height="10" rx="2" class="train-dark"/>
+  <rect x="-30" y="7" width="4" height="3" rx="1" class="train-window"/>
+  <rect x="-24" y="7" width="4" height="3" rx="1" class="train-window"/>
+  <circle cx="-29" cy="16" r="2.3" class="train-wheel"/>
+  <circle cx="-20" cy="16" r="2.3" class="train-wheel"/>
+
+  <!-- middle carriage -->
+  <rect x="-12" y="4" width="18" height="10" rx="2" class="train-main"/>
+  <rect x="-8" y="7" width="4" height="3" rx="1" class="train-window"/>
+  <rect x="-2" y="7" width="4" height="3" rx="1" class="train-window"/>
+  <circle cx="-7" cy="16" r="2.3" class="train-wheel"/>
+  <circle cx="2" cy="16" r="2.3" class="train-wheel"/>
+
+  <!-- engine -->
+  <rect x="10" y="5" width="18" height="9" rx="2" class="train-main"/>
+  <rect x="18" y="-1" width="8" height="7" rx="1.5" class="train-main"/>
+  <rect x="20" y="1" width="4" height="3" rx="1" class="train-window"/>
+  <rect x="12" y="0" width="4" height="6" rx="1" class="train-dark"/>
+
+  <polygon points="28,5 34,9.5 28,14" class="train-main"/>
+
+  <circle cx="15" cy="16" r="2.4" class="train-wheel"/>
+  <circle cx="25" cy="16" r="2.4" class="train-wheel"/>
+
+  <!-- smoke -->
+  <circle cx="14" cy="-4" r="2" class="smoke">
+    <animate attributeName="cy" values="-4;-10;-16" dur="1.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;.6;0" dur="1.8s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="1.5;3;4.5" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+
+  <circle cx="18" cy="-7" r="1.5" class="smoke">
+    <animate attributeName="cy" values="-7;-13;-19" dur="1.8s" begin="0.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;.5;0" dur="1.8s" begin="0.4s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="1;2.5;4" dur="1.8s" begin="0.4s" repeatCount="indefinite"/>
+  </circle>
+</g>
+''')
+
+svg.append("</svg>")
+
+output = Path("assets/github-train.svg")
+output.parent.mkdir(parents=True, exist_ok=True)
+output.write_text("".join(svg), encoding="utf-8")
+
+print(f"Generated {output}")
