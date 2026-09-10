@@ -10,7 +10,7 @@
   <a href="https://www.linkedin.com/in/kawithma-rajapaksha-6a216b334" target="_blank">
     <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" />
   </a>
-  <a href="https://github.com/YOUR_GITHUB_USERNAME" target="_blank">
+  <a href="https://github.com/Kavithma17" target="_blank">
     <img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
   </a>
   <a href="mailto:kavithmarajapaksha@gmail.com" target="_blank">
@@ -88,12 +88,12 @@
 <h2 align="center">📈 GitHub Stats & Journey</h2>
 
 <p align="center">
-  <img src="./assets/github-train.svg" width="100%" alt="GitHub Contribution Train" />
+  <img src="./assets/github-animals.svg" width="100%" alt="GitHub Contribution Bunnies" />
 </p>
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=YOUR_GITHUB_USERNAME&show_icons=true&theme=radical" alt="GitHub Stats" height="192px"/>
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=YOUR_GITHUB_USERNAME&layout=compact&theme=radical" alt="Top Languages" height="192px"/>
+  <img src="https://github-readme-stats.vercel.app/api?username=Kavithma17&show_icons=true&theme=radical" alt="GitHub Stats" height="192px"/>
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=Kavithma17&layout=compact&theme=radical" alt="Top Languages" height="192px"/>
 </p>
 
 ---

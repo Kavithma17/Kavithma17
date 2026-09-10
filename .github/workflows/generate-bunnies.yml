@@ -17,10 +17,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
@@ -30,7 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Make sure this matches your exact GitHub username
           GITHUB_USERNAME: ${{ github.repository_owner }}
-        run: python your_script_name.py # ⚠️ Change this to the actual name of your Python file
+        run: python generate_bunnies.py
 
       - name: Commit and push the generated SVG
         run: |
