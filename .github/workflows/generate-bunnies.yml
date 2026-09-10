@@ -1,0 +1,41 @@
+name: Generate GitHub Bunnies Animation
+
+on:
+  # Run automatically every 12 hours
+  schedule:
+    - cron: "0 */12 * * *"
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+  # Run on every push to the main branch
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Run Python script to generate SVG
+        env:
+          # This token is provided automatically by GitHub Actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Make sure this matches your exact GitHub username
+          GITHUB_USERNAME: ${{ github.repository_owner }}
+        run: python your_script_name.py # ⚠️ Change this to the actual name of your Python file
+
+      - name: Commit and push the generated SVG
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add assets/github-animals.svg
+          git commit -m "chore: update github contribution bunnies [skip ci]" || echo "No changes to commit"
+          git push
